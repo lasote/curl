@@ -1,0 +1,7 @@
+tests/data/*
+m4/*
+packages/*
+perl/*
+winbuild/*
+
+
