@@ -35,9 +35,7 @@
 #include "http_negotiate.h"
 #include "curl_memory.h"
 #include "curl_multibyte.h"
-
-#define _MPRINTF_REPLACE /* use our functions only */
-#include <curl/mprintf.h>
+#include "curl_printf.h"
 
 /* The last #include file should be: */
 #include "memdebug.h"
@@ -209,7 +207,7 @@ CURLcode Curl_input_negotiate(struct connectdata *conn, bool proxy,
     &attrs,
     &expiry);
 
-  Curl_safefree(input_token);
+  free(input_token);
 
   if(GSS_ERROR(neg_ctx->status))
     return CURLE_OUT_OF_MEMORY;

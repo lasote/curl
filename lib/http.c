@@ -77,9 +77,7 @@
 #include "pipeline.h"
 #include "http2.h"
 #include "connect.h"
-
-#define _MPRINTF_REPLACE /* use our functions only */
-#include <curl/mprintf.h>
+#include "curl_printf.h"
 
 /* The last #include file should be: */
 #include "memdebug.h"
@@ -303,7 +301,7 @@ static CURLcode http_output_basic(struct connectdata *conn, bool proxy)
   if(!authorization)
     return CURLE_REMOTE_ACCESS_DENIED;
 
-  Curl_safefree(*userp);
+  free(*userp);
   *userp = aprintf("%sAuthorization: Basic %s\r\n",
                    proxy?"Proxy-":"",
                    authorization);
@@ -733,7 +731,7 @@ Curl_http_output_auth(struct connectdata *conn,
 
   if((conn->bits.httpproxy && conn->bits.proxy_user_passwd) ||
      conn->bits.user_passwd)
-    /* continue please */ ;
+    /* continue please */;
   else {
     authhost->done = TRUE;
     authproxy->done = TRUE;
@@ -1126,8 +1124,7 @@ CURLcode Curl_add_buffer_send(Curl_send_buffer *in,
   /* Curl_convert_to_network calls failf if unsuccessful */
   if(result) {
     /* conversion failed, free memory and return to the caller */
-    if(in->buffer)
-      free(in->buffer);
+    free(in->buffer);
     free(in);
     return result;
   }
@@ -1230,8 +1227,7 @@ CURLcode Curl_add_buffer_send(Curl_send_buffer *in,
         conn->writechannel_inuse = FALSE;
     }
   }
-  if(in->buffer)
-    free(in->buffer);
+  free(in->buffer);
   free(in);
 
   return result;
@@ -1255,8 +1251,7 @@ CURLcode Curl_add_bufferf(Curl_send_buffer *in, const char *fmt, ...)
     return result;
   }
   /* If we failed, we cleanup the whole buffer and return error */
-  if(in->buffer)
-    free(in->buffer);
+  free(in->buffer);
   free(in);
   return CURLE_OUT_OF_MEMORY;
 }
@@ -1436,7 +1431,7 @@ static CURLcode https_connecting(struct connectdata *conn, bool *done)
 }
 #endif
 
-#if defined(USE_SSLEAY) || defined(USE_GNUTLS) || defined(USE_SCHANNEL) || \
+#if defined(USE_OPENSSL) || defined(USE_GNUTLS) || defined(USE_SCHANNEL) || \
     defined(USE_DARWINSSL) || defined(USE_POLARSSL) || defined(USE_NSS)
 /* This function is for OpenSSL, GnuTLS, darwinssl, schannel and polarssl only.
    It should be made to query the generic SSL layer instead. */
@@ -1475,7 +1470,7 @@ static int https_getsock(struct connectdata *conn,
   return GETSOCK_BLANK;
 }
 #endif /* USE_SSL */
-#endif /* USE_SSLEAY || USE_GNUTLS || USE_SCHANNEL */
+#endif /* USE_OPENSSL || USE_GNUTLS || USE_SCHANNEL */
 
 /*
  * Curl_http_done() gets called from Curl_done() after a single HTTP request
@@ -1797,7 +1792,7 @@ CURLcode Curl_http(struct connectdata *conn, bool *done)
   if(conn->httpversion < 20) { /* unless the connection is re-used and already
                                   http2 */
     switch(conn->negnpn) {
-    case NPN_HTTP2:
+    case CURL_HTTP_VERSION_2_0:
       result = Curl_http2_init(conn);
       if(result)
         return result;
@@ -1810,7 +1805,7 @@ CURLcode Curl_http(struct connectdata *conn, bool *done)
       if(result)
         return result;
       break;
-    case NPN_HTTP1_1:
+    case CURL_HTTP_VERSION_1_1:
       /* continue with HTTP/1.1 when explicitly requested */
       break;
     default:
@@ -1828,10 +1823,8 @@ CURLcode Curl_http(struct connectdata *conn, bool *done)
   http = data->req.protop;
 
   if(!data->state.this_is_a_follow) {
-    /* this is not a followed location, get the original host name */
-    if(data->state.first_host)
-      /* Free to avoid leaking memory on multiple requests*/
-      free(data->state.first_host);
+    /* Free to avoid leaking memory on multiple requests*/
+    free(data->state.first_host);
 
     data->state.first_host = strdup(conn->host.name);
     if(!data->state.first_host)
@@ -1875,7 +1868,7 @@ CURLcode Curl_http(struct connectdata *conn, bool *done)
      it might have been used in the proxy connect, but if we have got a header
      with the user-agent string specified, we erase the previously made string
      here. */
-  if(Curl_checkheaders(conn, "User-Agent:") && conn->allocptr.uagent) {
+  if(Curl_checkheaders(conn, "User-Agent:")) {
     free(conn->allocptr.uagent);
     conn->allocptr.uagent=NULL;
   }
@@ -2018,7 +2011,14 @@ CURLcode Curl_http(struct connectdata *conn, bool *done)
     }
 #endif
 
-    conn->allocptr.host = NULL;
+    if(strcmp("Host:", ptr)) {
+      conn->allocptr.host = aprintf("%s\r\n", ptr);
+      if(!conn->allocptr.host)
+        return CURLE_OUT_OF_MEMORY;
+    }
+    else
+      /* when clearing the header */
+      conn->allocptr.host = NULL;
   }
   else {
     /* When building Host: headers, we must put the host name within
@@ -2213,8 +2213,7 @@ CURLcode Curl_http(struct connectdata *conn, bool *done)
     if(((httpreq == HTTPREQ_GET) || (httpreq == HTTPREQ_HEAD)) &&
        !Curl_checkheaders(conn, "Range:")) {
       /* if a line like this was already allocated, free the previous one */
-      if(conn->allocptr.rangeline)
-        free(conn->allocptr.rangeline);
+      free(conn->allocptr.rangeline);
       conn->allocptr.rangeline = aprintf("Range: bytes=%s\r\n",
                                          data->state.range);
     }
@@ -2222,8 +2221,7 @@ CURLcode Curl_http(struct connectdata *conn, bool *done)
             !Curl_checkheaders(conn, "Content-Range:")) {
 
       /* if a line like this was already allocated, free the previous one */
-      if(conn->allocptr.rangeline)
-        free(conn->allocptr.rangeline);
+      free(conn->allocptr.rangeline);
 
       if(data->set.set_resume_from < 0) {
         /* Upload resume was asked for, but we don't know the size of the
@@ -2287,11 +2285,11 @@ CURLcode Curl_http(struct connectdata *conn, bool *done)
     Curl_add_bufferf(req_buffer,
                      "%s" /* ftp typecode (;type=x) */
                      " HTTP/%s\r\n" /* HTTP version */
+                     "%s" /* host */
                      "%s" /* proxyuserpwd */
                      "%s" /* userpwd */
                      "%s" /* range */
                      "%s" /* user agent */
-                     "%s" /* host */
                      "%s" /* accept */
                      "%s" /* TE: */
                      "%s" /* accept-encoding */
@@ -2301,6 +2299,7 @@ CURLcode Curl_http(struct connectdata *conn, bool *done)
 
                      ftp_typecode,
                      httpstring,
+                     (conn->allocptr.host?conn->allocptr.host:""),
                      conn->allocptr.proxyuserpwd?
                      conn->allocptr.proxyuserpwd:"",
                      conn->allocptr.userpwd?conn->allocptr.userpwd:"",
@@ -2310,7 +2309,6 @@ CURLcode Curl_http(struct connectdata *conn, bool *done)
                       *data->set.str[STRING_USERAGENT] &&
                       conn->allocptr.uagent)?
                      conn->allocptr.uagent:"",
-                     (conn->allocptr.host?conn->allocptr.host:""),
                      http->p_accept?http->p_accept:"",
                      conn->allocptr.te?conn->allocptr.te:"",
                      (data->set.str[STRING_ENCODING] &&
@@ -3485,7 +3483,7 @@ CURLcode Curl_http_readwrite_headers(struct SessionHandle *data,
         if(Curl_pipeline_server_blacklisted(data, server_name))
           conn->bundle->server_supports_pipelining = FALSE;
       }
-      Curl_safefree(server_name);
+      free(server_name);
     }
     else if((conn->httpversion == 10) &&
             conn->bits.httpproxy &&
@@ -3690,7 +3688,7 @@ CURLcode Curl_http_readwrite_headers(struct SessionHandle *data,
 
       result = Curl_http_input_auth(conn, proxy, auth);
 
-      Curl_safefree(auth);
+      free(auth);
 
       if(result)
         return result;

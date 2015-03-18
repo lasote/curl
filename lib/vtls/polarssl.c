@@ -55,9 +55,7 @@
 #include "select.h"
 #include "rawstr.h"
 #include "polarssl_threadlock.h"
-
-#define _MPRINTF_REPLACE /* use our functions only */
-#include <curl/mprintf.h>
+#include "curl_printf.h"
 #include "curl_memory.h"
 /* The last #include file should be: */
 #include "memdebug.h"
@@ -120,11 +118,8 @@ static void polarssl_debug(void *context, int level, const char *line)
 #endif
 
 /* ALPN for http2? */
-#ifdef USE_NGHTTP2
-#  undef HAS_ALPN
-#  ifdef POLARSSL_SSL_ALPN
-#    define HAS_ALPN
-#  endif
+#ifdef POLARSSL_SSL_ALPN
+#  define HAS_ALPN
 #endif
 
 static Curl_recv polarssl_recv;
@@ -359,16 +354,23 @@ polarssl_connect_step1(struct connectdata *conn,
   }
 
 #ifdef HAS_ALPN
-  if(data->set.httpversion == CURL_HTTP_VERSION_2_0) {
-    if(data->set.ssl_enable_alpn) {
-      static const char* protocols[] = {
-        NGHTTP2_PROTO_VERSION_ID, ALPN_HTTP_1_1, NULL
-      };
-      ssl_set_alpn_protocols(&connssl->ssl, protocols);
-      infof(data, "ALPN, offering %s, %s\n", protocols[0],
-            protocols[1]);
-      connssl->asked_for_h2 = TRUE;
+  if(data->set.ssl_enable_alpn) {
+    static const char* protocols[3];
+    int cur = 0;
+
+#ifdef USE_NGHTTP2
+    if(data->set.httpversion == CURL_HTTP_VERSION_2_0) {
+      protocols[cur++] = NGHTTP2_PROTO_VERSION_ID;
+      infof(data, "ALPN, offering %s\n", NGHTTP2_PROTO_VERSION_ID);
     }
+#endif
+
+    protocols[cur++] = ALPN_HTTP_1_1;
+    infof(data, "ALPN, offering %s\n", ALPN_HTTP_1_1);
+
+    protocols[cur] = NULL;
+
+    ssl_set_alpn_protocols(&connssl->ssl, protocols);
   }
 #endif
 
@@ -389,10 +391,6 @@ polarssl_connect_step2(struct connectdata *conn,
   struct SessionHandle *data = conn->data;
   struct ssl_connect_data* connssl = &conn->ssl[sockindex];
   char buffer[1024];
-
-#ifdef HAS_ALPN
-  const char* next_protocol;
-#endif
 
   char errorbuf[128];
   errorbuf[0] = 0;
@@ -463,22 +461,24 @@ polarssl_connect_step2(struct connectdata *conn,
 
 #ifdef HAS_ALPN
   if(data->set.ssl_enable_alpn) {
-    next_protocol = ssl_get_alpn_protocol(&connssl->ssl);
+    const char *next_protocol = ssl_get_alpn_protocol(&connssl->ssl);
 
     if(next_protocol != NULL) {
       infof(data, "ALPN, server accepted to use %s\n", next_protocol);
 
+#ifdef USE_NGHTTP2
       if(!strncmp(next_protocol, NGHTTP2_PROTO_VERSION_ID,
                   NGHTTP2_PROTO_VERSION_ID_LEN)) {
-        conn->negnpn = NPN_HTTP2;
+        conn->negnpn = CURL_HTTP_VERSION_2_0;
       }
-      else if(!strncmp(next_protocol, ALPN_HTTP_1_1, ALPN_HTTP_1_1_LENGTH)) {
-        conn->negnpn = NPN_HTTP1_1;
+      else
+#endif
+      if(!strncmp(next_protocol, ALPN_HTTP_1_1, ALPN_HTTP_1_1_LENGTH)) {
+        conn->negnpn = CURL_HTTP_VERSION_1_1;
       }
     }
-    else if(connssl->asked_for_h2) {
+    else
       infof(data, "ALPN, server did not agree to a protocol\n");
-    }
   }
 #endif
 
@@ -496,7 +496,7 @@ polarssl_connect_step3(struct connectdata *conn,
   struct ssl_connect_data *connssl = &conn->ssl[sockindex];
   struct SessionHandle *data = conn->data;
   void *old_ssl_sessionid = NULL;
-  ssl_session *our_ssl_sessionid = &conn->ssl[sockindex].ssn ;
+  ssl_session *our_ssl_sessionid = &conn->ssl[sockindex].ssn;
   bool incache;
 
   DEBUGASSERT(ssl_connect_3 == connssl->connecting_state);

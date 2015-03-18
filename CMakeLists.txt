@@ -83,6 +83,24 @@ ENDIF()
 
 option(ENABLE_ARES "Set to ON to enable c-ares support" OFF)
 option(ENABLE_THREADED_RESOLVER "Set to ON to enable POSIX threaded DNS lookup" OFF)
+
+option(ENABLE_DEBUG "Set to ON to enable curl debug features" OFF)
+option(ENABLE_CURLDEBUG "Set to ON to build with TrackMemory feature enabled" OFF)
+
+if (ENABLE_DEBUG)
+  # DEBUGBUILD will be defined only for Debug builds
+  if(NOT CMAKE_VERSION VERSION_LESS 3.0)
+    set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS $<$<CONFIG:Debug>:DEBUGBUILD>)
+  else()
+    set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS_DEBUG DEBUGBUILD)
+  endif()
+  set(ENABLE_CURLDEBUG ON)
+endif()
+
+if (ENABLE_CURLDEBUG)
+  set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS CURLDEBUG)
+endif()
+
 # initialize CURL_LIBS
 set(CURL_LIBS "")
 
@@ -287,7 +305,6 @@ endif()
 option(CMAKE_USE_OPENSSL "Use OpenSSL code. Experimental" ON)
 mark_as_advanced(CMAKE_USE_OPENSSL)
 
-set(USE_SSLEAY OFF)
 set(USE_OPENSSL OFF)
 set(HAVE_LIBCRYPTO OFF)
 set(HAVE_LIBSSL OFF)
@@ -296,7 +313,6 @@ if(CMAKE_USE_OPENSSL AND NOT BIICODE) # Biicode uses OpenSSL as a dep, do not fi
   find_package(OpenSSL)
   if(OPENSSL_FOUND)
     list(APPEND CURL_LIBS ${OPENSSL_LIBRARIES})
-    set(USE_SSLEAY ON)
     set(USE_OPENSSL ON)
     set(HAVE_LIBCRYPTO ON)
     set(HAVE_LIBSSL ON)
@@ -572,6 +588,9 @@ if(NOT UNIX)
   check_include_file_concat("winsock.h"      HAVE_WINSOCK_H)
   check_include_file_concat("ws2tcpip.h"     HAVE_WS2TCPIP_H)
   check_include_file_concat("winsock2.h"     HAVE_WINSOCK2_H)
+  IF(MINGW) # check_include_file_concat doesn't find ws3tcpip.h in mingw BUG?
+	set(HAVE_WS2TCPIP_H 1)
+  ENDIF()
 endif(NOT UNIX)
 
 check_include_file_concat("stdio.h"          HAVE_STDIO_H)
@@ -766,7 +785,6 @@ if(CMAKE_USE_OPENSSL)
     HAVE_CRYPTO_CLEANUP_ALL_EX_DATA)
   if(HAVE_LIBCRYPTO AND HAVE_LIBSSL)
     set(USE_OPENSSL 1)
-    set(USE_SSLEAY 1)
   endif(HAVE_LIBCRYPTO AND HAVE_LIBSSL)
 endif(CMAKE_USE_OPENSSL)
 check_symbol_exists(gmtime_r      "${CURL_INCLUDES}" HAVE_GMTIME_R)

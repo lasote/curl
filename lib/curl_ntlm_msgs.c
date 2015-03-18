@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2014, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2015, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -53,9 +53,7 @@
 #include "curl_ntlm_msgs.h"
 #include "curl_sasl.h"
 #include "curl_endian.h"
-
-#define _MPRINTF_REPLACE /* use our functions only */
-#include <curl/mprintf.h>
+#include "curl_printf.h"
 
 /* The last #include file should be: */
 #include "memdebug.h"
@@ -760,7 +758,7 @@ CURLcode Curl_sasl_create_ntlm_type3_message(struct SessionHandle *data,
     ntlm_print_hex(stderr, (char *)&ntlmbuf[ntrespoff], ntresplen);
   });
 
-  Curl_safefree(ntlmv2resp);/* Free the dynamic buffer allocated for NTLMv2 */
+  free(ntlmv2resp);/* Free the dynamic buffer allocated for NTLMv2 */
 
 #endif
 

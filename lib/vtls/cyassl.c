@@ -43,9 +43,7 @@
 #include "connect.h" /* for the connect timeout */
 #include "select.h"
 #include "rawstr.h"
-
-#define _MPRINTF_REPLACE /* use our functions only */
-#include <curl/mprintf.h>
+#include "curl_printf.h"
 #include "curl_memory.h"
 
 #include <cyassl/ssl.h>
@@ -142,7 +140,7 @@ cyassl_connect_step1(struct connectdata *conn,
                                       data->set.str[STRING_SSL_CAPATH])) {
       if(data->set.ssl.verifypeer) {
         /* Fail if we insist on successfully verifying the server. */
-        failf(data,"error setting certificate verify locations:\n"
+        failf(data, "error setting certificate verify locations:\n"
               "  CAfile: %s\n  CApath: %s",
               data->set.str[STRING_SSL_CAFILE]?
               data->set.str[STRING_SSL_CAFILE]: "none",
@@ -216,7 +214,7 @@ cyassl_connect_step1(struct connectdata *conn,
     /* we got a session id, use it! */
     if(!SSL_set_session(conssl->handle, ssl_sessionid)) {
       failf(data, "SSL: SSL_set_session failed: %s",
-            ERR_error_string(SSL_get_error(conssl->handle, 0),NULL));
+            ERR_error_string(SSL_get_error(conssl->handle, 0), NULL));
       return CURLE_SSL_CONNECT_ERROR;
     }
     /* Informational message */
