@@ -558,6 +558,9 @@ if(NOT UNIX)
   check_include_file_concat("winsock.h"      HAVE_WINSOCK_H)
   check_include_file_concat("ws2tcpip.h"     HAVE_WS2TCPIP_H)
   check_include_file_concat("winsock2.h"     HAVE_WINSOCK2_H)
+  IF(MINGW) # check_include_file_concat doesn't find ws3tcpip.h in mingw BUG?
+	set(HAVE_WS2TCPIP_H 1)
+  ENDIF()
 endif(NOT UNIX)
 
 check_include_file_concat("stdio.h"          HAVE_STDIO_H)
