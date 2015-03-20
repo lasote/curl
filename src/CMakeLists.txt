@@ -1,3 +1,8 @@
+IF(BIICODE AND (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tool_binmode.c"))
+  # Someone is depending on this library but src files are not a dependency, end build them.
+  RETURN()
+ENDIF()
+
 set(EXE_NAME curl)
 
 if(USE_MANUAL)
