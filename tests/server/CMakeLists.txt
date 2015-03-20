@@ -12,6 +12,10 @@ function(SETUP_EXECUTABLE TEST_NAME)    # ARGN are the files in the test
   if(USE_ARES)
     include_directories(${CARES_INCLUDE_DIR})
   endif()
+  
+  IF(BIICODE)
+	target_link_libraries(${TEST_NAME} PUBLIC ${BII_LIB_DEPS} ${BII_LIB_TARGET})
+  ENDIF()
 
   target_link_libraries(${TEST_NAME} ${CURL_LIBS})
 

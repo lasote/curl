@@ -73,7 +73,14 @@ include_directories( ${CURL_SOURCE_DIR}/include )
 
 option(BUILD_CURL_EXE "Set to ON to build cURL executable." ON)
 option(BUILD_CURL_TESTS "Set to ON to build cURL tests." ON)
-option(CURL_STATICLIB "Set to ON to build libcurl with static linking." OFF)
+
+IF(BIICODE)
+  # By default we want static library
+  option(CURL_STATICLIB "Set to ON to build libcurl with static linking." ON)
+ELSE()
+  option(CURL_STATICLIB "Set to ON to build libcurl with static linking." OFF)
+ENDIF()
+
 option(ENABLE_ARES "Set to ON to enable c-ares support" OFF)
 option(ENABLE_THREADED_RESOLVER "Set to ON to enable POSIX threaded DNS lookup" OFF)
 
@@ -302,7 +309,7 @@ set(USE_OPENSSL OFF)
 set(HAVE_LIBCRYPTO OFF)
 set(HAVE_LIBSSL OFF)
 
-if(CMAKE_USE_OPENSSL)
+if(CMAKE_USE_OPENSSL AND NOT BIICODE) # Biicode uses OpenSSL as a dep, do not find it in system
   find_package(OpenSSL)
   if(OPENSSL_FOUND)
     list(APPEND CURL_LIBS ${OPENSSL_LIBRARIES})
@@ -322,6 +329,29 @@ if(CMAKE_USE_OPENSSL)
     check_include_file("openssl/rand.h"   HAVE_OPENSSL_RAND_H)
   endif()
 endif()
+
+IF(BIICODE)
+  # Biicode has openssl as a dependency we have all options
+  set(USE_SSLEAY ON)
+  set(USE_OPENSSL ON)
+  set(HAVE_LIBCRYPTO ON)
+  set(HAVE_LIBSSL ON)
+
+  SET(HAVE_OPENSSL_CRYPTO_H 1)
+  SET(HAVE_OPENSSL_ENGINE_H 1)
+  SET(HAVE_OPENSSL_ERR_H 1)
+  SET(HAVE_OPENSSL_PEM_H 1)
+  SET(HAVE_OPENSSL_PKCS12_H 1)
+  SET(HAVE_OPENSSL_RSA_H 1)
+  SET(HAVE_OPENSSL_SSL_H 1)
+  SET(HAVE_OPENSSL_X509_H 1)
+  SET(HAVE_OPENSSL_RAND_H 1)
+
+  #set_target_properties(${BII_LIB_TARGET} PROPERTIES COMPILE_FLAGS -fPIC )
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC" ) 
+  #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC" ) 
+ENDIF()
+
 
 if(NOT CURL_DISABLE_LDAP)
 
@@ -558,6 +588,9 @@ if(NOT UNIX)
   check_include_file_concat("winsock.h"      HAVE_WINSOCK_H)
   check_include_file_concat("ws2tcpip.h"     HAVE_WS2TCPIP_H)
   check_include_file_concat("winsock2.h"     HAVE_WINSOCK2_H)
+  IF(MINGW) # check_include_file_concat doesn't find ws3tcpip.h in mingw BUG?
+	set(HAVE_WS2TCPIP_H 1)
+  ENDIF()
 endif(NOT UNIX)
 
 check_include_file_concat("stdio.h"          HAVE_STDIO_H)
@@ -1108,7 +1141,9 @@ set(CPPFLAG_CURL_STATICLIB  "")
 set(CURL_CA_BUNDLE          "")
 set(CURLVERSION             "${CURL_VERSION}")
 set(ENABLE_SHARED           "yes")
-if(CURL_STATICLIB)
+if(CURL_STATICLIB AND BIICODE) # Its no broken usen biicode ;)
+  set(ENABLE_STATIC         "yes")
+elseif(CURL_STATICLIB)
   # Broken: LIBCURL_LIBS below; .a lib is not built
   message(WARNING "Static linking is broken!")
   set(ENABLE_STATIC         "no")

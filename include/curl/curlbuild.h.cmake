@@ -119,10 +119,11 @@
 #    define WIN32_LEAN_AND_MEAN
 #  endif
 #  include <windows.h>
-#  include <winsock2.h>
-#  include <ws2tcpip.h>
+#  ifndef _WINSOCK_H
+#    include <winsock2.h>
+#  	 include <ws2tcpip.h>
+#  endif
 #endif
-
 /* Configure process defines this to 1 when it finds out that system   */
 /* header file sys/types.h must be included by the external interface. */
 #cmakedefine CURL_PULL_SYS_TYPES_H
@@ -162,7 +163,11 @@
 #define CURL_SIZEOF_LONG ${CURL_SIZEOF_LONG}
 
 /* Integral data type used for curl_socklen_t. */
-#define CURL_TYPEOF_CURL_SOCKLEN_T ${CURL_TYPEOF_CURL_SOCKLEN_T}
+#if __MINGW32__
+	#define CURL_TYPEOF_CURL_SOCKLEN_T int
+#else
+	#define CURL_TYPEOF_CURL_SOCKLEN_T ${CURL_TYPEOF_CURL_SOCKLEN_T}
+#endif
 
 /* The size of `curl_socklen_t', as computed by sizeof. */
 #define CURL_SIZEOF_CURL_SOCKLEN_T ${CURL_SIZEOF_CURL_SOCKLEN_T}
