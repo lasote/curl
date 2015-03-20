@@ -163,7 +163,11 @@
 #define CURL_SIZEOF_LONG ${CURL_SIZEOF_LONG}
 
 /* Integral data type used for curl_socklen_t. */
-#define CURL_TYPEOF_CURL_SOCKLEN_T ${CURL_TYPEOF_CURL_SOCKLEN_T}
+#if __MINGW32__
+	#define CURL_TYPEOF_CURL_SOCKLEN_T int
+#else
+	#define CURL_TYPEOF_CURL_SOCKLEN_T ${CURL_TYPEOF_CURL_SOCKLEN_T}
+#endif
 
 /* The size of `curl_socklen_t', as computed by sizeof. */
 #define CURL_SIZEOF_CURL_SOCKLEN_T ${CURL_SIZEOF_CURL_SOCKLEN_T}
