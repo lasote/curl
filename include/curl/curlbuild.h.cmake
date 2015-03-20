@@ -119,10 +119,11 @@
 #    define WIN32_LEAN_AND_MEAN
 #  endif
 #  include <windows.h>
-#  include <winsock2.h>
-#  include <ws2tcpip.h>
+#  ifndef _WINSOCK_H
+#    include <winsock2.h>
+#  	 include <ws2tcpip.h>
+#  endif
 #endif
-
 /* Configure process defines this to 1 when it finds out that system   */
 /* header file sys/types.h must be included by the external interface. */
 #cmakedefine CURL_PULL_SYS_TYPES_H
