@@ -519,7 +519,6 @@ IF(CMAKE_USE_LIBSSH2 AND BIICODE)
     set(USE_LIBSSH2 ON)
     set(HAVE_LIBSSH2_H ON)
 	  set(CMAKE_EXTRA_INCLUDE_FILES "libssh2.h")
-    #set(CURL_INCLUDES ${CURL_INCLUDES} "libssh2.h")
     set(CURL_TEST_DEFINES "${CURL_TEST_DEFINES} -DHAVE_LIBSSH2_H")
   	# now check for specific libssh2 symbols as they were added in different versions
   	check_function_exists(libssh2_version           HAVE_LIBSSH2_VERSION)
@@ -711,8 +710,6 @@ endif(NOT HAVE_SIZEOF_SSIZE_T)
 #    define CURL_SUFFIX_CURL_OFF_TU ULL
 
 set(CURL_SIZEOF_LONG ${SIZEOF_LONG})
-
-check_type_size(int SIZEOF_MEMBER)
 
 if(SIZEOF_LONG EQUAL 8)
   set(CURL_TYPEOF_CURL_OFF_T long)
