@@ -514,22 +514,20 @@ if(CMAKE_USE_LIBSSH2 AND NOT BIICODE)
   endif(LIBSSH2_FOUND)
 endif(CMAKE_USE_LIBSSH2)
 
-IF(BIICODE)
+IF(CMAKE_USE_LIBSSH2 AND BIICODE)
     set(HAVE_LIBSSH2 ON)
     set(USE_LIBSSH2 ON)
     set(HAVE_LIBSSH2_H ON)
-	set(CMAKE_EXTRA_INCLUDE_FILES "libssh2.h")
-    set(CURL_INCLUDES ${CURL_INCLUDES} "${LIBSSH2_INCLUDE_DIR}/libssh2.h")
+	  set(CMAKE_EXTRA_INCLUDE_FILES "libssh2.h")
+    #set(CURL_INCLUDES ${CURL_INCLUDES} "libssh2.h")
     set(CURL_TEST_DEFINES "${CURL_TEST_DEFINES} -DHAVE_LIBSSH2_H")
-	# now check for specific libssh2 symbols as they were added in different versions
-    IF(MSVC)		
-		check_function_exists(libssh2_version           HAVE_LIBSSH2_VERSION)
+  	# now check for specific libssh2 symbols as they were added in different versions
+  	check_function_exists(libssh2_version           HAVE_LIBSSH2_VERSION)
 		check_function_exists(libssh2_init              HAVE_LIBSSH2_INIT)
 		check_function_exists(libssh2_exit              HAVE_LIBSSH2_EXIT)
 		check_function_exists(libssh2_scp_send64        HAVE_LIBSSH2_SCP_SEND64)
 		check_function_exists(libssh2_session_handshake HAVE_LIBSSH2_SESSION_HANDSHAKE)
-		set(CMAKE_EXTRA_INCLUDE_FILES "")
-	ENDIF()	
+		set(CMAKE_EXTRA_INCLUDE_FILES)
 ENDIF()
 
 option(CMAKE_USE_GSSAPI "Use GSSAPI implementation (right now only Heimdal is supported with CMake build)" OFF)
@@ -713,6 +711,8 @@ endif(NOT HAVE_SIZEOF_SSIZE_T)
 #    define CURL_SUFFIX_CURL_OFF_TU ULL
 
 set(CURL_SIZEOF_LONG ${SIZEOF_LONG})
+
+check_type_size(int SIZEOF_MEMBER)
 
 if(SIZEOF_LONG EQUAL 8)
   set(CURL_TYPEOF_CURL_OFF_T long)
