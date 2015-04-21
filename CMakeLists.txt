@@ -514,7 +514,7 @@ if(CMAKE_USE_LIBSSH2 AND NOT BIICODE)
   endif(LIBSSH2_FOUND)
 endif(CMAKE_USE_LIBSSH2)
 
-IF(CMAKE_USE_LIBSSH2 AND BIICODE)
+IF(BIICODE)
     set(HAVE_LIBSSH2 ON)
     set(USE_LIBSSH2 ON)
     set(HAVE_LIBSSH2_H ON)
@@ -606,7 +606,7 @@ if(NOT UNIX)
   check_include_file_concat("ws2tcpip.h"     HAVE_WS2TCPIP_H)
   check_include_file_concat("winsock2.h"     HAVE_WINSOCK2_H)
   IF(MINGW) # check_include_file_concat doesn't find ws3tcpip.h in mingw BUG?
-	set(HAVE_WS2TCPIP_H 1)
+  set(HAVE_WS2TCPIP_H 1)
   ENDIF()
 endif(NOT UNIX)
 
